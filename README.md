@@ -34,4 +34,4 @@ Get it on [CurseForge](https://www.curseforge.com/wow/addons/campfire-dad-jokes)
 
 ## Development
 
-This repo is published from the Gamba Forever monorepo (`addons/DadJokes/`), where the addon is tested. Pushing a `v<version>` tag here runs `.github/workflows/release.yml`: it checks the tag against `DadJokes.toc` and `CHANGELOG.md`, zips the addon, uploads it to CurseForge for game version 16001 with the changelog's top section as release notes, and creates a GitHub release. MIT licensed: see `LICENSE`.
+This repo is published from the Gamba Forever monorepo (`addons/DadJokes/`), where the addon is tested. Pushing a `v<version>` tag here runs `.github/workflows/release.yml`: it checks the tag against `DadJokes.toc` and `CHANGELOG.md`, zips the addon, uploads it to CurseForge for game version 1.60.1 (interface 16001) with the changelog's top section as release notes, and creates a GitHub release. MIT licensed: see `LICENSE`.

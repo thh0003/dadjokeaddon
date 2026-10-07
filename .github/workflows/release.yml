@@ -2,8 +2,8 @@
 # pushed. Exported as .github/workflows/release.yml. Needs:
 #   - secret CF_API_KEY: a CurseForge API token (curseforge.com, account > API tokens);
 #   - `## X-Curse-Project-ID` in DadJokes.toc;
-#   - optional variable CF_GAME_VERSION: the CurseForge game version name (default 16001, the
-#     WoW: Forever interface).
+#   - optional variable CF_GAME_VERSION: the CurseForge game version name. By default it is the
+#     .toc's `## Interface` written the way CurseForge names versions: 16001 (WoW: Forever) is 1.60.1.
 name: Release
 
 on:
@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       CF_API_KEY: ${{ secrets.CF_API_KEY }}
-      CF_GAME_VERSION: ${{ vars.CF_GAME_VERSION || '16001' }}
+      CF_GAME_VERSION: ${{ vars.CF_GAME_VERSION }}
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v4
@@ -55,11 +55,13 @@ jobs:
           [ -n "$CF_API_KEY" ] || { echo "::error::Set the CF_API_KEY secret (a CurseForge API token)"; exit 1; }
           PROJECT_ID=$(sed -n 's/^## X-Curse-Project-ID: *//p' DadJokes.toc | tr -d '\r')
           [ -n "$PROJECT_ID" ] || { echo "::error::DadJokes.toc has no ## X-Curse-Project-ID"; exit 1; }
+          interface=$(sed -n 's/^## Interface: *//p' DadJokes.toc | tr -d '\r' | cut -d, -f1 | tr -d ' ')
+          game_version=${CF_GAME_VERSION:-$((interface / 10000)).$((interface / 100 % 100)).$((interface % 100))}
           versions=$(curl -fsS -H "X-Api-Token: $CF_API_KEY" https://wow.curseforge.com/api/game/versions)
-          game=$(jq -r --arg v "$CF_GAME_VERSION" '[.[] | select(.name == $v or .slug == $v)][0].id // empty' <<< "$versions")
+          game=$(jq -r --arg v "$game_version" '[.[] | select(.name == $v or .slug == $v)][0].id // empty' <<< "$versions")
           if [ -z "$game" ]; then
-            echo "::error::CurseForge has no game version named $CF_GAME_VERSION. Set the CF_GAME_VERSION variable to one of these names:"
-            jq -r '.[].name' <<< "$versions" | sort -u
+            echo "::error::CurseForge has no game version named $game_version (from ## Interface: $interface). Set the CF_GAME_VERSION variable to one of these names:"
+            jq -r '.[].name' <<< "$versions" | sort -V -u
             exit 1
           fi
           metadata=$(jq -n --rawfile log dist/notes.md --arg name "Campfire Dad Jokes $VERSION" --argjson game "$game" \

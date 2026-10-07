@@ -1,0 +1,10 @@
+# BigWigs packager settings (https://github.com/BigWigsMods/packager). Exported as .pkgmeta.
+package-as: DadJokes
+
+manual-changelog:
+  filename: CHANGELOG.md
+  markup-type: markdown
+
+ignore:
+  - README.md
+  - screenshots

@@ -1,0 +1,37 @@
+# Publishes Campfire Dad Jokes to CurseForge (and a GitHub release) when a version tag is pushed.
+# Exported as .github/workflows/release.yml. Needs:
+#   - secret CF_API_KEY: a CurseForge API token (curseforge.com, Account > API tokens);
+#   - `## X-Curse-Project-ID` in DadJokes.toc;
+#   - optional variable CF_GAME_VERSION: the CurseForge game version to upload for, when the
+#     packager cannot work it out from `## Interface`.
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check the tag matches the addon version and changelog
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          toc=$(sed -n 's/^## Version: *//p' DadJokes.toc | tr -d '\r')
+          top=$(sed -n 's/^## \([0-9][^ ]*\).*/\1/p' CHANGELOG.md | head -n 1)
+          [ "$tag" = "$toc" ] || { echo "::error::Tag v$tag but DadJokes.toc has version $toc"; exit 1; }
+          [ "$tag" = "$top" ] || { echo "::error::Tag v$tag but CHANGELOG.md starts with $top"; exit 1; }
+
+      - uses: BigWigsMods/packager@v2
+        with:
+          args: ${{ vars.CF_GAME_VERSION && format('-g {0}', vars.CF_GAME_VERSION) || '' }}
+        env:
+          CF_API_KEY: ${{ secrets.CF_API_KEY }}
+          GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}

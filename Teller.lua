@@ -134,7 +134,7 @@ function ns.tell()
   return true
 end
 
-ns.ADDON_URL = 'https://gamba-forever.com/addons'
+ns.ADDON_URL = 'https://www.curseforge.com/wow/addons/campfire-dad-jokes'
 
 -- Say where to get the addon, for anyone at the campfire who wants it. A joke in progress keeps
 -- waiting for its punch line.

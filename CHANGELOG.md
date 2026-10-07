@@ -1,6 +1,6 @@
 # Campfire Dad Jokes changelog
 
-## 1.3.3
+## 1.3.4
 
 First CurseForge release.
 
@@ -9,4 +9,4 @@ First CurseForge release.
 - 25 starter jokes, plus your own on the My jokes tab: add, edit, delete, and restore the starters.
 - No repeats until every joke has been told.
 - Compact view (`/joke mini`): just the buttons, movable anywhere, remembered across sessions.
-- Share addon link says where to get the addon in /say.
+- Share addon link says where to get the addon (this CurseForge page) in /say.

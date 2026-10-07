@@ -30,8 +30,8 @@ Nothing is sent during combat or a match: the addon says so, and you can click a
 
 ## Install
 
-Get it on CurseForge, or download the zip from this repo's Releases and unzip it into `Interface/AddOns`, so you get `Interface/AddOns/DadJokes`.
+Get it on [CurseForge](https://www.curseforge.com/wow/addons/campfire-dad-jokes), or download the zip from this repo's Releases and unzip it into `Interface/AddOns`, so you get `Interface/AddOns/DadJokes`.
 
 ## Development
 
-This repo is published from the Gamba Forever monorepo (`addons/DadJokes/`), where the addon is tested. Pushing a `v<version>` tag here runs `.github/workflows/release.yml`, which packages the addon and uploads it to CurseForge. MIT licensed: see `LICENSE`.
+This repo is published from the Gamba Forever monorepo (`addons/DadJokes/`), where the addon is tested. Pushing a `v<version>` tag here runs `.github/workflows/release.yml`: it checks the tag against `DadJokes.toc` and `CHANGELOG.md`, zips the addon, uploads it to CurseForge for game version 16001 with the changelog's top section as release notes, and creates a GitHub release. MIT licensed: see `LICENSE`.

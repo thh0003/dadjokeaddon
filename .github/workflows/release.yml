@@ -1,9 +1,9 @@
-# Publishes Campfire Dad Jokes to CurseForge (and a GitHub release) when a version tag is pushed.
-# Exported as .github/workflows/release.yml. Needs:
-#   - secret CF_API_KEY: a CurseForge API token (curseforge.com, Account > API tokens);
+# Publishes Campfire Dad Jokes to CurseForge, and as a GitHub release, when a v<version> tag is
+# pushed. Exported as .github/workflows/release.yml. Needs:
+#   - secret CF_API_KEY: a CurseForge API token (curseforge.com, account > API tokens);
 #   - `## X-Curse-Project-ID` in DadJokes.toc;
-#   - optional variable CF_GAME_VERSION: the CurseForge game version to upload for, when the
-#     packager cannot work it out from `## Interface`.
+#   - optional variable CF_GAME_VERSION: the CurseForge game version name (default 16001, the
+#     WoW: Forever interface).
 name: Release
 
 on:
@@ -16,22 +16,62 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
+    env:
+      CF_API_KEY: ${{ secrets.CF_API_KEY }}
+      CF_GAME_VERSION: ${{ vars.CF_GAME_VERSION || '16001' }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Check the tag matches the addon version and changelog
+        id: version
         run: |
-          tag="${GITHUB_REF_NAME#v}"
+          version="${GITHUB_REF_NAME#v}"
           toc=$(sed -n 's/^## Version: *//p' DadJokes.toc | tr -d '\r')
           top=$(sed -n 's/^## \([0-9][^ ]*\).*/\1/p' CHANGELOG.md | head -n 1)
-          [ "$tag" = "$toc" ] || { echo "::error::Tag v$tag but DadJokes.toc has version $toc"; exit 1; }
-          [ "$tag" = "$top" ] || { echo "::error::Tag v$tag but CHANGELOG.md starts with $top"; exit 1; }
+          [ "$version" = "$toc" ] || { echo "::error::Tag v$version but DadJokes.toc has version $toc"; exit 1; }
+          [ "$version" = "$top" ] || { echo "::error::Tag v$version but CHANGELOG.md starts with $top"; exit 1; }
+          echo "version=$version" >> "$GITHUB_OUTPUT"
 
-      - uses: BigWigsMods/packager@v2
-        with:
-          args: ${{ vars.CF_GAME_VERSION && format('-g {0}', vars.CF_GAME_VERSION) || '' }}
+      - name: Package
         env:
-          CF_API_KEY: ${{ secrets.CF_API_KEY }}
-          GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          mkdir -p dist/DadJokes
+          cp DadJokes.toc LICENSE CHANGELOG.md dist/DadJokes/
+          # Every file the .toc lists (non-comment, non-blank lines).
+          tr -d '\r' < DadJokes.toc | grep -v '^[[:space:]]*#' | grep -v '^[[:space:]]*$' | while read -r f; do
+            cp "$f" dist/DadJokes/
+          done
+          (cd dist && zip -qr "DadJokes-$VERSION.zip" DadJokes)
+          # Release notes: the changelog's top section, without its heading.
+          awk '/^## /{n++} n==1' CHANGELOG.md | tail -n +2 > dist/notes.md
+          unzip -l "dist/DadJokes-$VERSION.zip"
+
+      - name: Upload to CurseForge
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          [ -n "$CF_API_KEY" ] || { echo "::error::Set the CF_API_KEY secret (a CurseForge API token)"; exit 1; }
+          PROJECT_ID=$(sed -n 's/^## X-Curse-Project-ID: *//p' DadJokes.toc | tr -d '\r')
+          [ -n "$PROJECT_ID" ] || { echo "::error::DadJokes.toc has no ## X-Curse-Project-ID"; exit 1; }
+          versions=$(curl -fsS -H "X-Api-Token: $CF_API_KEY" https://wow.curseforge.com/api/game/versions)
+          game=$(jq -r --arg v "$CF_GAME_VERSION" '[.[] | select(.name == $v or .slug == $v)][0].id // empty' <<< "$versions")
+          if [ -z "$game" ]; then
+            echo "::error::CurseForge has no game version named $CF_GAME_VERSION. Set the CF_GAME_VERSION variable to one of these names:"
+            jq -r '.[].name' <<< "$versions" | sort -u
+            exit 1
+          fi
+          metadata=$(jq -n --rawfile log dist/notes.md --arg name "Campfire Dad Jokes $VERSION" --argjson game "$game" \
+            '{changelog: $log, changelogType: "markdown", displayName: $name, gameVersions: [$game], releaseType: "release"}')
+          curl -sS --fail-with-body -H "X-Api-Token: $CF_API_KEY" \
+            --form-string "metadata=$metadata" \
+            -F "file=@dist/DadJokes-$VERSION.zip" \
+            "https://wow.curseforge.com/api/projects/${PROJECT_ID}/upload-file"
+
+      - name: GitHub release
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" "dist/DadJokes-$VERSION.zip" \
+            --title "Campfire Dad Jokes $VERSION" --notes-file dist/notes.md

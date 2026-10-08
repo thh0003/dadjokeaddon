@@ -2,7 +2,7 @@
 ## Title: Campfire Dad Jokes
 ## Notes: Keep a list of dad jokes and tell them at the campfire: one click says the setup, the next says the punch line, or let auto-tell keep going on its own.
 ## Author: thebobs4005
-## Version: 1.3.4
+## Version: 1.3.5
 ## X-License: MIT
 ## X-Curse-Project-ID: 1731818
 ## X-Website: https://www.curseforge.com/wow/addons/campfire-dad-jokes

@@ -27,13 +27,50 @@ local function addRaw(setup, punch, starter)
   db.nextId = db.nextId + 1
 end
 
+-- Upgrades for the saved data: MIGRATIONS[n](db) turns format n into format n + 1. When a change
+-- needs a new layout, bump ns.FORMAT and add the step here; players' jokes must never be reset.
+ns.MIGRATIONS = {}
+
+-- Keep every readable joke (a table with a setup and a punch line), and ids that stay unique.
+local function repair(db)
+  local jokes, maxId = {}, 0
+  for _, j in ipairs(type(db.jokes) == 'table' and db.jokes or {}) do
+    if type(j) == 'table' and type(j.setup) == 'string' and type(j.punch) == 'string' then
+      jokes[#jokes + 1] = j
+      if type(j.id) == 'number' and j.id > maxId then maxId = j.id end
+    end
+  end
+  for _, j in ipairs(jokes) do
+    if type(j.id) ~= 'number' then
+      maxId = maxId + 1
+      j.id = maxId
+    end
+  end
+  db.jokes = jokes
+  if type(db.nextId) ~= 'number' or db.nextId <= maxId then db.nextId = maxId + 1 end
+end
+
+-- Load the saved jokes. A first install gets the starters; saved data from any version is kept:
+-- older formats are upgraded step by step, and data from a newer version is used as it is.
 function ns.initDB()
-  if type(DadJokesDB) ~= 'table' or DadJokesDB.format ~= ns.FORMAT then
+  if type(DadJokesDB) ~= 'table' then
     DadJokesDB = { format = ns.FORMAT, nextId = 1, jokes = {} }
     for n, s in ipairs(ns.STARTERS) do addRaw(s[1], s[2], n) end
+    return
   end
-  DadJokesDB.jokes = DadJokesDB.jokes or {}
-  DadJokesDB.nextId = DadJokesDB.nextId or (#DadJokesDB.jokes + 1)
+  local db = DadJokesDB
+  -- Saves without a format number predate it: they are format 1.
+  local format = type(db.format) == 'number' and db.format or 1
+  if format > ns.FORMAT then
+    ns.print('These jokes were saved by a newer version of the addon. Your jokes are kept; update the addon to be safe.')
+  else
+    while format < ns.FORMAT do
+      if ns.MIGRATIONS[format] then ns.MIGRATIONS[format](db) end
+      format = format + 1
+    end
+    db.format = format
+  end
+  repair(db)
 end
 
 local function clean(s)

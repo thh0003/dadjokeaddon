@@ -10,6 +10,7 @@ local _, ns = ...
 
 ns.DEFAULT_PACE = { punch = 4, next = 3 }
 ns.PACE_MIN, ns.PACE_MAX = 0.5, 60
+ns.PACE_RANGE_MESSAGE = 'Pauses must be between ' .. ns.PACE_MIN .. ' and ' .. ns.PACE_MAX .. ' seconds.'
 
 local function validPace(n)
   return type(n) == 'number' and n >= ns.PACE_MIN and n <= ns.PACE_MAX
@@ -29,7 +30,7 @@ function ns.setPace(punch, nextJoke)
   local cur = ns.pace()
   punch, nextJoke = punch or cur.punch, nextJoke or cur.next
   if not validPace(punch) or not validPace(nextJoke) then
-    return false, 'Pauses must be between ' .. ns.PACE_MIN .. ' and ' .. ns.PACE_MAX .. ' seconds.'
+    return false, ns.PACE_RANGE_MESSAGE
   end
   DadJokesDB.pace = { punch = punch, next = nextJoke }
   return true

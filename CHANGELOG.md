@@ -1,5 +1,9 @@
 # Campfire Dad Jokes changelog
 
+## 1.3.5
+
+- Updating the addon never resets your jokes. Saved jokes from older versions are upgraded, jokes saved by a newer version are kept, and only unreadable entries are dropped.
+
 ## 1.3.4
 
 First CurseForge release.

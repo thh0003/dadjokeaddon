@@ -92,7 +92,7 @@ local function paceBox(label, key, x)
     if n then
       ok, why = ns.setPace(key == 'punch' and n or nil, key == 'next' and n or nil)
     else
-      ok, why = false, 'Pauses must be between ' .. ns.PACE_MIN .. ' and ' .. ns.PACE_MAX .. ' seconds.'
+      ok, why = false, ns.PACE_RANGE_MESSAGE
     end
     if not ok then ns.print(why) end
     self:SetText(tostring(ns.pace()[key]))

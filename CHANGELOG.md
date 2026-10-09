@@ -1,5 +1,11 @@
 # Campfire Dad Jokes changelog
 
+## 1.3.7
+
+- Choose where jokes go: **Tell in:** on the Campfire tab, or `/joke to`. Emote (the default), say, yell, party, raid, instance, guild, officer, a whisper (`/joke to w Name`) or a numbered channel (`/joke to 2`).
+- Clicks and **Share addon link** use your choice. Auto-tell uses it for party, raid, instance, guild, officer and whispers, and your party or raid otherwise.
+- If the chosen chat isn't available (no group, no guild, channel not joined), the click says why and the line waits. Auto-tell stops when its whisper target is offline.
+
 ## 1.3.6
 
 - Auto-tell works again after the October 2026 client update, which only lets addons post emotes from a click. It now posts in group chat: party, raid or instance. Start it in a group; outside one, use Tell a joke.

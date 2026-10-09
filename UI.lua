@@ -23,6 +23,55 @@ local hint = camp:CreateFontString(nil, 'OVERLAY', 'GameFontHighlightSmall')
 hint:SetPoint('TOP', 0, -4)
 hint:SetText('Gather everyone round. Click once for the setup, again for the punch line.')
 
+-- Where jokes go: a button that cycles through ns.DESTS (left click next, right click back), and a
+-- box for the whisper name or channel number, shown only for those two.
+local destLabel = camp:CreateFontString(nil, 'OVERLAY', 'GameFontNormalSmall')
+destLabel:SetText('Tell in:')
+
+local destButton = CreateFrame('Button', nil, camp, 'UIPanelButtonTemplate')
+destButton:SetSize(150, 22)
+destButton:SetPoint('TOP', -40, -22)
+destButton:RegisterForClicks('LeftButtonUp', 'RightButtonUp')
+destLabel:SetPoint('RIGHT', destButton, 'LEFT', -6, 0)
+destButton:SetScript('OnClick', function(_, button)
+  local cur, n = ns.dest().type, #ns.DESTS
+  for i, d in ipairs(ns.DESTS) do
+    if d.type == cur then
+      local step = button == 'RightButton' and -1 or 1
+      ns.setDest(ns.DESTS[(i - 1 + step) % n + 1].type)
+      break
+    end
+  end
+  ui.refresh()
+end)
+ui.destButton = destButton
+
+local destTargetBox = CreateFrame('EditBox', nil, camp, 'InputBoxTemplate')
+destTargetBox:SetSize(100, 20)
+destTargetBox:SetPoint('LEFT', destButton, 'RIGHT', 10, 0)
+destTargetBox:SetAutoFocus(false)
+destTargetBox:SetMaxLetters(40)
+local function saveDestTarget(self)
+  local d = ns.dest()
+  local text = self:GetText()
+  if text ~= '' then
+    local ok, why = ns.setDest(d.type, text)
+    if not ok then ns.print(why) end
+  end
+  local now = ns.dest()
+  self:SetText(now.target and tostring(now.target) or '')
+  ui.refresh()
+end
+destTargetBox:SetScript('OnEnterPressed', function(self) saveDestTarget(self); self:ClearFocus() end)
+destTargetBox:SetScript('OnEditFocusLost', saveDestTarget)
+destTargetBox:SetScript('OnEscapePressed', function(self)
+  local d = ns.dest()
+  self:SetText(d.target and tostring(d.target) or '')
+  self:ClearFocus()
+end)
+destTargetBox:Hide()
+ui.destTargetBox = destTargetBox
+
 local tellButton = CreateFrame('Button', 'DadJokesTellButton', camp, 'UIPanelButtonTemplate')
 tellButton:SetSize(220, 60)
 tellButton:SetPoint('CENTER', 0, 30)
@@ -61,7 +110,7 @@ compactButton:SetScript('OnClick', function()
 end)
 ui.compactButton = compactButton
 
--- Auto-tell: jokes keep coming on their own, as speech-style emotes, until stopped.
+-- Auto-tell: jokes keep coming on their own until stopped (see Teller.lua for where they go).
 local function toggleAuto()
   if ns.autoRunning() then ns.stopAuto() else ns.startAuto() end
 end
@@ -161,7 +210,8 @@ end)
 miniButton:SetScript('OnEnter', function(self)
   GameTooltip:SetOwner(self, 'ANCHOR_TOP')
   GameTooltip:AddLine('Campfire Dad Jokes')
-  GameTooltip:AddLine(W.color('muted', 'Click: setup, then punch line. Auto: keep telling jokes in group chat. Right-click: full window. Drag to move.'))
+  GameTooltip:AddLine('Telling in: ' .. ns.destLabel())
+  GameTooltip:AddLine(W.color('muted', 'Click: setup, then punch line. Auto: keep telling jokes on their own. Right-click: full window. Drag to move.'))
   GameTooltip:Show()
 end)
 miniButton:SetScript('OnLeave', function() GameTooltip:Hide() end)
@@ -308,6 +358,13 @@ function ui.refresh()
   autoButton:SetEnabled(auto or #DadJokesDB.jokes > 0)
   miniAutoButton:SetText(auto and 'Stop' or 'Auto')
   miniAutoButton:SetEnabled(autoButton:IsEnabled())
+  local dest = ns.dest()
+  destButton:SetText(ns.destLabel(dest))
+  local needsTarget = dest.type == 'WHISPER' or dest.type == 'CHANNEL'
+  destTargetBox:SetShown(needsTarget)
+  if needsTarget and not destTargetBox:HasFocus() then
+    destTargetBox:SetText(dest.target and tostring(dest.target) or '')
+  end
   local pace = ns.pace()
   -- Leave a box alone while the player is typing in it (auto-tell refreshes every line).
   if not ui.punchDelayBox:HasFocus() then ui.punchDelayBox:SetText(tostring(pace.punch)) end

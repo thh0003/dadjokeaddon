@@ -7,7 +7,7 @@ A World of Warcraft addon (WoW: Forever, `## Interface: 16001`). Gather everyone
 ## Features
 
 - **Tell a joke:** click once for the setup, again for the punch line. No repeats until every joke has been told.
-- **Auto-tell:** press **Auto-tell** (or `/joke auto`) and jokes keep coming until you press **Stop** (or `/joke stop`). Set the pauses on the Campfire tab, **Punch line after** and **Next joke after**, or with `/joke pace <before punch line> <between jokes>` (4 s and 3 s by default, 0.5–60 s).
+- **Auto-tell:** in a party or raid, press **Auto-tell** (or `/joke auto`) and jokes keep coming in group chat until you press **Stop** (or `/joke stop`). The game only lets addons talk to nearby players from a click, so auto-tell uses party, raid or instance chat. Set the pauses on the Campfire tab, **Punch line after** and **Next joke after**, or with `/joke pace <before punch line> <between jokes>` (4 s and 3 s by default, 0.5–60 s).
 - **Your own jokes:** 25 starters, plus your own on the **My jokes** tab (add, edit, delete, restore the starters), or `/joke add Setup || Punch line`.
 - **Compact view:** `/joke mini` leaves just the buttons on screen, movable anywhere.
 

@@ -1,12 +1,14 @@
 -- Telling a joke takes two clicks: the first says a random joke's setup, the second its punch
 -- line. Jokes go out as speech-style emotes ("Bo says: ..."), which reach the same nearby players
--- as /say. Auto-tell runs on timers, and the game only takes addon /say from a click or keypress
--- outside instances, so clicks emote too, to match. During chat lockdown (combat, a match) nothing
--- is sent and the same line waits for the next click.
+-- as /say. During chat lockdown (combat, a match) nothing is sent and the same line waits for the
+-- next click.
 --
 -- Auto-tell: setup, pace().punch seconds, punch line, pace().next seconds, next joke, until stopped.
 -- The pauses are player settings (DadJokesDB.pace), set with /joke pace or on the Campfire tab.
-local _, ns = ...
+-- It runs on timers, and the client only takes addon /say and emotes from a click or keypress
+-- (emotes too since WoW: Forever's October 2026 update), so auto-tell posts in group chat: raid,
+-- instance or party. If the game still blocks one of our lines, auto-tell stops.
+local ADDON, ns = ...
 
 ns.DEFAULT_PACE = { punch = 4, next = 3 }
 ns.PACE_MIN, ns.PACE_MAX = 0.5, 60
@@ -70,6 +72,14 @@ local function send(text, chatType)
   return true
 end
 
+-- The group chat auto-tell posts in, or nil outside a group.
+local function groupChannel()
+  if IsInGroup and LE_PARTY_CATEGORY_INSTANCE and IsInGroup(LE_PARTY_CATEGORY_INSTANCE) then return 'INSTANCE_CHAT' end
+  if IsInRaid and IsInRaid() then return 'RAID' end
+  if IsInGroup and IsInGroup() then return 'PARTY' end
+  return nil
+end
+
 local function stop(reason)
   state.auto, state.run = false, state.run + 1
   state.phase, state.joke, state.pending = 'idle', nil, nil
@@ -85,8 +95,12 @@ local function autoStep(run)
   if locked() then
     return stop('Chat is locked during combat or a match. Auto-tell stopped.')
   end
+  local channel = groupChannel()
+  if not channel then
+    return stop('You left the group. Auto-tell stopped.')
+  end
   if state.phase == 'asked' then
-    emote(state.joke.punch)
+    SendChatMessage(state.joke.punch, channel)
     state.joke, state.phase = nil, 'idle'
     refresh()
     C_Timer.After(ns.pace().next, function() autoStep(run) end)
@@ -96,14 +110,18 @@ local function autoStep(run)
   if not j then
     return stop('Add a joke first: open the window with /joke, or /joke add <setup> || <punch line>.')
   end
-  emote(j.setup)
+  SendChatMessage(j.setup, channel)
   state.pending, state.joke, state.phase = nil, j, 'asked'
   refresh()
   C_Timer.After(ns.pace().punch, function() autoStep(run) end)
 end
 
--- Start auto-tell. A joke waiting for its punch line is finished first.
+-- Start auto-tell. A joke waiting for its punch line is finished first. Returns false outside a group.
 function ns.startAuto()
+  if not groupChannel() then
+    ns.print('Auto-tell posts in party or raid chat: join a group first. (The game only lets addons talk nearby from a click, so use Tell a joke there.)')
+    return false
+  end
   state.run = state.run + 1
   state.auto = true
   autoStep(state.run)
@@ -134,6 +152,15 @@ function ns.tell()
   refresh()
   return true
 end
+
+-- A line the game refused (a protected call outside a click): stop rather than fail every few seconds.
+local function onBlocked(addon)
+  if addon == ADDON and state.auto then
+    stop('The game blocked a Campfire Dad Jokes line. Auto-tell stopped.')
+  end
+end
+ns.on('ADDON_ACTION_BLOCKED', onBlocked)
+ns.on('ADDON_ACTION_FORBIDDEN', onBlocked)
 
 ns.ADDON_URL = 'https://www.curseforge.com/wow/addons/campfire-dad-jokes'
 
@@ -194,7 +221,7 @@ SlashCmdList.DADJOKES = function(msg)
   elseif cmd == 'list' then
     ns.print(#DadJokesDB.jokes .. ' jokes in your list.')
   elseif cmd == 'help' then
-    ns.print('/joke opens the window. /joke tell says the next line (bind it to a key with a macro). /joke skip drops the joke in progress. /joke auto keeps telling jokes on its own until /joke stop. /joke pace <punch> <next> sets its pauses in seconds (now 4 and 3 by default). /joke share says where to get this addon. /joke mini shows or hides the compact view (just the button). /joke add <setup> || <punch line> adds a joke. /joke list counts your jokes.')
+    ns.print('/joke opens the window. /joke tell says the next line (bind it to a key with a macro). /joke skip drops the joke in progress. /joke auto keeps telling jokes on its own in party or raid chat until /joke stop. /joke pace <punch> <next> sets its pauses in seconds (now 4 and 3 by default). /joke share says where to get this addon. /joke mini shows or hides the compact view (just the button). /joke add <setup> || <punch line> adds a joke. /joke list counts your jokes.')
   elseif ns.ui and ns.ui.toggle then
     ns.ui.toggle()
   end

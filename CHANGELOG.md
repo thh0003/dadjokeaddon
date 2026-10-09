@@ -1,5 +1,10 @@
 # Campfire Dad Jokes changelog
 
+## 1.3.6
+
+- Auto-tell works again after the October 2026 client update, which only lets addons post emotes from a click. It now posts in group chat: party, raid or instance. Start it in a group; outside one, use Tell a joke.
+- If the game ever blocks a line, auto-tell stops and says why instead of failing every few seconds.
+
 ## 1.3.5
 
 - Updating the addon never resets your jokes. Saved jokes from older versions are upgraded, jokes saved by a newer version are kept, and only unreadable entries are dropped.
